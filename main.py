@@ -12,7 +12,7 @@ import pandas as pd
 
 import random #for picking random sentences to show off display 
 
-'''nltk.download(['punkt','averaged_perceptron_tagger','maxent_ne_chunker','words','stopwords','wordnet','vader_lexicon'])''' #required corpora found online
+nltk.download(['punkt','punkt_tab','averaged_perceptron_tagger','maxent_ne_chunker','words','stopwords','wordnet','vader_lexicon']) #required corpora found online
 
 stop_words = set(stopwords.words('english')) #you can actually print this to see the entire list
 lemmatizer = WordNetLemmatizer()
@@ -160,6 +160,6 @@ class ReviewAnalyzer:
 
 if __name__ == "__main__":
     analyzer = ReviewAnalyzer()
-    analyzer.process_file("uk_england_london_britannia_international_hotel.txt") #processes and lists information in a csv file
+    analyzer.process_file("hotel_testing.txt") #processes and lists information in a csv file
     analyzer.display_stopwords_and_lemmatize("uk_england_london_britannia_international_hotel.txt") #uses same logic as remove_stopwords_and_lemmatize to display results on small scale
     analyzer.analyze_document_sentiment("hotel_processed.csv") #prints document sentiment
