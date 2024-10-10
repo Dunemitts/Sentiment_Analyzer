@@ -40,8 +40,8 @@ class ReviewAnalyzer:
         scores = outputs.logits.detach().numpy()[0]
         scores = softmax(scores)
         neg_tenth = int(scores[0] * 10) #grabs the 10th place value from negative and positive
-        pos_tenth = int(scores[2] * 10)
-        if neg_tenth >= 1 or pos_tenth >= 1: #if either the negative value or positive value is high enough, they're considered over neutral (as neutral will always be dominant)
+        pos_tenth = int(scores[2] * 10) #the positive value in scores array is the 3rd value (position: 2)
+        if neg_tenth >= 1 or pos_tenth >= 1: #if neither the negative value or positive value is high enough, they're considered over neutral (as neutral will always be dominant)
             if neg_tenth > pos_tenth:
                 return '-1'
             else:
@@ -60,23 +60,26 @@ class ReviewAnalyzer:
         
         words = review.split()
         categorized_words = {}
-        roberta_sentiment = self.analyze_sentiment_roberta(' '.join(words))
+        roberta_sentiments = []
         
         for i, word in enumerate(words):
             lower_word = word.lower()
             for category, keywords in categories.items():
                 if any(lower_word in single_keyword for single_keyword in keywords):
-                    context = ' '.join(words[max(0, i-3):min(i+3, len(words))])
+                    context = ' '.join(words[max(0, i-3):min(i+3, len(words))]) #finds the previous 3 words and the next 3 words to put together in a sentence to find the sentiment of (using context)
                     sentiment = self.analyze_sentiment_roberta(context)
-                    if sentiment == '1':
+                    roberta_sentiments.append(sentiment)
+                    if sentiment >= '1':
                         categorized_words.setdefault(category, []).append(1)#signifies positive review for this category, will be combined later for a 0-5 star rating
-                    elif sentiment == '-1':
+                    elif sentiment <= '-1':
                         categorized_words.setdefault(category, []).append(-1)#signifies negative review for this category, will be combined later for a 0-5 star rating
+        
+        total_score = sum(map(int, roberta_sentiments))#calculate overall sentiment score (convert the sentiments from strings to integers before summing them)
         return {
             "index": self.index,
             "categories": categorized_words,
-            "sentiment_roberta": roberta_sentiment,
-            "review_text": review
+            "sentiment_paragraph": total_score,
+            "review_text": review,
         }
     
     def process_file(self, filename): #processes the file
@@ -84,7 +87,7 @@ class ReviewAnalyzer:
             with open(filename, 'r') as file_in:
                 with open('hotel_processed.csv', 'w', encoding='utf-8') as file_out:
                     writer = csv.writer(file_out)
-                    writer.writerow(["index", "categories", "sentiment", "review"]) #lists the titles in csv
+                    writer.writerow(["index", "categories", "overall_sentiment", "review", "sentiment_annotations"]) #lists the titles in csv
                     for line in file_in: #for each line, process and write in csv according to the titles above
                         processed_line = self.remove_stopwords_and_lemmatize(line) #not used in analysis since I want to test context and removing stopwords eliminates context
                         analysis = self.categorize_review(line)
@@ -98,12 +101,12 @@ class ReviewAnalyzer:
                                 star_count = 0
                             formatted_categories.append(f"{category}:{star_count}★")#flowering up 1 and -1 by converting them into stars, representing the star count for hotels
                         
-                        review_text_no_commas = processed_line.replace(',', '') #strips commas from the final text to maintain csv integrity
+                        review_text_no_commas = analysis['review_text'].replace(',', '') #strips commas from the final text to maintain csv integrity
                         row = [
                             analysis['index'],
                             ' '.join(formatted_categories), #since this is a csv file, don't join with commas(, )
-                            analysis['sentiment_roberta'],
-                            review_text_no_commas
+                            analysis['sentiment_paragraph'],
+                            review_text_no_commas,
                         ]
                         writer.writerow(row)
                         self.index += 1
@@ -132,12 +135,13 @@ class ReviewAnalyzer:
     def analyze_document_sentiment(self, filename): #takes in the csv file as input
         try:
             with open(filename, 'r') as file_in:
-                df = pd.read_csv(file_in, usecols=['sentiment'])#access 'sentiment' column from csv using pandas
+                df = pd.read_csv(file_in, usecols=['overall_sentiment'])#access 'sentiment' column from csv using pandas
                 if df.columns[0] == 'Unnamed: 0': #skip header
                     df = df.iloc[1:]
                 
-                total_positive = df[df['sentiment'] == 1].shape[0] #count positive and negative by counting how many is present in a column with that value
-                total_negative = abs(df[df['sentiment'] == -1].shape[0])
+                total_positive = df[df['overall_sentiment'] >= 1].shape[0] #count positive and negative by counting how many is present in a column with that value
+                total_neutral = df[df['overall_sentiment'] == 0].shape[0]
+                total_negative = abs(df[df['overall_sentiment'] <= -1].shape[0])
                 total_reviews = df.shape[0]
             
             positive_ratio = total_positive / total_reviews#calculate overall sentiment
@@ -151,6 +155,7 @@ class ReviewAnalyzer:
             
             print(f"\nThe overall sentiment of the document is {document_sentiment}.")#print statement that contains all the information needed to display at the end
             print(f"Positive reviews: {total_positive}")
+            print(f"Neutral reviews: {total_neutral}")
             print(f"Negative reviews: {total_negative}")
             print(f"Total reviews analyzed: {total_reviews}")
 
