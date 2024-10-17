@@ -1,3 +1,5 @@
+import os #file navigation
+import shutil #moving output to processed_data folder
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -84,10 +86,31 @@ class ReviewAnalyzer:
     
     def process_file(self, filename): #processes the file
         try:
-            with open(filename, 'r') as file_in:
-                with open('hotel_processed.csv', 'w', encoding='utf-8') as file_out:
+            parts = filename.lower().split('_')
+            country = parts[0] #extract name information from the filename to find respective directory
+            city = parts[1].lower().replace(' ', '-') #lowercases it, replaces spaces with dashes(-)
+            hotel_name = parts[2].lower().replace(' ', '-')
+            
+            if country in ["usa", "uk"]: #check for countries with states so they can skip over states and only grab city
+                city = parts[2].lower().replace(' ', '-')
+            
+            hotel_dir = os.path.join("data", city) #find the directory with the hotel files
+            if not os.path.exists(hotel_dir): #check if directory exists
+                print(f"Error: Hotel directory '{hotel_dir}' not found.")
+                return
+            
+            input_file = filename #find the input file
+            if not input_file: #check if file exists
+                print(f"Error: No .txt file found in '{hotel_dir}'.")
+                return
+            
+            output_file = f"{filename}_processed.csv" #create output file name
+
+            with open(os.path.join(hotel_dir, input_file), 'r') as file_in:
+                with open(output_file, 'w', encoding='utf-8') as file_out:
                     writer = csv.writer(file_out)
                     writer.writerow(["index", "categories", "overall_sentiment", "review", "sentiment_annotations"]) #lists the titles in csv
+                    
                     for line in file_in: #for each line, process and write in csv according to the titles above
                         processed_line = self.remove_stopwords_and_lemmatize(line) #not used in analysis since I want to test context and removing stopwords eliminates context
                         analysis = self.categorize_review(line)
@@ -110,6 +133,13 @@ class ReviewAnalyzer:
                         ]
                         writer.writerow(row)
                         self.index += 1
+            
+            processed_dir = os.path.join(os.getcwd(), "processed_data") #creates a 'processed_data' directory in case it doesn't exist
+            os.makedirs(processed_dir, exist_ok=True)
+            new_output_file = os.path.join(processed_dir, city, output_file)
+            shutil.move(output_file, new_output_file) #moveds output to 'processed_data' folder
+            
+            print(f"Processing completed successfully for {hotel_name}")
         except Exception as e: #error catching
             print(f"An error occurred: {str(e)}")
 
@@ -134,7 +164,16 @@ class ReviewAnalyzer:
 
     def analyze_document_sentiment(self, filename): #takes in the csv file as input
         try:
-            with open(filename, 'r') as file_in:
+            parts = filename.lower().split('_')
+            country = parts[0] #extract name information from the filename to find respective directory
+            city = parts[1].lower().replace(' ', '-')
+            
+            if country in ["usa", "uk"]: #check for countries with states so they can skip over states and only grab city
+                city = parts[2].lower().replace(' ', '-')
+
+            processed_file_path = os.path.join("processed_data", city, f"{filename}_processed.csv") #construct full path for simplicity
+
+            with open(processed_file_path, 'r', encoding='utf-8') as file_in: #finds the processed file in it's respective city folder (i.e. "processed_data\beijing\china_beijing_aloft_beijing_haidian_processed.csv")
                 df = pd.read_csv(file_in, usecols=['overall_sentiment'])#access 'sentiment' column from csv using pandas
                 if df.columns[0] == 'Unnamed: 0': #skip header
                     df = df.iloc[1:]
@@ -161,10 +200,11 @@ class ReviewAnalyzer:
 
         except Exception as e:
             print(f"An error occurred: {str(e)}")
-            return None
 
 if __name__ == "__main__":
     analyzer = ReviewAnalyzer()
-    analyzer.process_file("hotel_testing.txt") #processes and lists information in a csv file
-    analyzer.display_stopwords_and_lemmatize("uk_england_london_britannia_international_hotel.txt") #uses same logic as remove_stopwords_and_lemmatize to display results on small scale
-    analyzer.analyze_document_sentiment("hotel_processed.csv") #prints document sentiment
+    hotel_name = input("Enter the hotel name (e.g., china_beijing_aloft_beijing_haidian): ") #take in input
+    analyzer.process_file(hotel_name) #processes and lists information in a csv file
+    analyzer.analyze_document_sentiment(hotel_name) #prints document sentiment
+    
+    #DEPRECATED: analyzer.display_stopwords_and_lemmatize(os.path.join("data", hotel_name.lower().replace(' ', '_'), f"{hotel_name.lower().replace(' ', '_')}.txt")) #uses same logic as remove_stopwords_and_lemmatize to display results on small scale
