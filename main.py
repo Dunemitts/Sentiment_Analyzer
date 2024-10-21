@@ -143,8 +143,25 @@ class ReviewAnalyzer:
         except Exception as e: #error catching
             print(f"An error occurred: {str(e)}")
 
+    def search_processed_hotel(self, filename):
+        try:
+            parts = filename.lower().split('_')
+            country = parts[0] #extract name information from the filename to find respective directory
+            city = parts[1].lower().replace(' ', '-')
+            
+            if country in ["usa", "uk"]: #check for countries with states so they can skip over states and only grab city
+                city = parts[2].lower().replace(' ', '-')
 
-    def display_stopwords_and_lemmatize(self, filename): #displays stopwords and lemmatization for assignment
+            processed_file_path = os.path.join("processed_data", city, f"{filename}_processed.csv") #construct full path for simplicity
+            if os.path.exists(processed_file_path) == False: #check if exists, runs processing if it doesn't exist
+                    analyzer.process_file(filename) #processes and lists information in a csv file
+            else:
+                print(f'Processed file found in {processed_file_path}')
+
+        except Exception as e:
+            print(f"An error occurred while searching for processed hotel: {str(e)}")
+
+    def display_stopwords_and_lemmatize(self, filename): #DEPRECATED: displays stopwords and lemmatization for assignment
         with open(filename, 'r') as file:
             text = file.read()
 
@@ -204,7 +221,7 @@ class ReviewAnalyzer:
 if __name__ == "__main__":
     analyzer = ReviewAnalyzer()
     hotel_name = input("Enter the hotel name (e.g., china_beijing_aloft_beijing_haidian): ") #take in input
-    analyzer.process_file(hotel_name) #processes and lists information in a csv file
+    analyzer.search_processed_hotel(hotel_name) #searches if file exists as processed data. if it does not, processes and lists information in a csv file
     analyzer.analyze_document_sentiment(hotel_name) #prints document sentiment
     
     #DEPRECATED: analyzer.display_stopwords_and_lemmatize(os.path.join("data", hotel_name.lower().replace(' ', '_'), f"{hotel_name.lower().replace(' ', '_')}.txt")) #uses same logic as remove_stopwords_and_lemmatize to display results on small scale
