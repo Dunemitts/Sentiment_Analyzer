@@ -14,7 +14,7 @@ import pandas as pd
 
 import random #for picking random sentences to show off display 
 
-nltk.download(['punkt','punkt_tab','averaged_perceptron_tagger','maxent_ne_chunker','words','stopwords','wordnet','vader_lexicon']) #required corpora found online
+#nltk.download(['punkt','punkt_tab','averaged_perceptron_tagger','maxent_ne_chunker','words','stopwords','wordnet','vader_lexicon']) #required corpora found online
 
 stop_words = set(stopwords.words('english')) #you can actually print this to see the entire list
 lemmatizer = WordNetLemmatizer()
@@ -71,19 +71,30 @@ class ReviewAnalyzer:
                     context = ' '.join(words[max(0, i-3):min(i+3, len(words))]) #finds the previous 3 words and the next 3 words to put together in a sentence to find the sentiment of (using context)
                     sentiment = self.analyze_sentiment_roberta(context)
                     roberta_sentiments.append(sentiment)
+                    
                     if sentiment >= '1':
                         categorized_words.setdefault(category, []).append(1)#signifies positive review for this category, will be combined later for a 0-5 star rating
                     elif sentiment <= '-1':
                         categorized_words.setdefault(category, []).append(-1)#signifies negative review for this category, will be combined later for a 0-5 star rating
         
         total_score = sum(map(int, roberta_sentiments))#calculate overall sentiment score (convert the sentiments from strings to integers before summing them)
+        
+        category_scores = {}
+        for category in categories.keys():
+            score = sum(categorized_words.get(category, []))
+            if score > 5:
+                score = 5
+            elif score < 0:
+                score = 0
+            category_scores[category] = score
+
         return {
             "index": self.index,
-            "categories": categorized_words,
+            "categories": category_scores,
             "sentiment_paragraph": total_score,
             "review_text": review,
         }
-    
+
     def process_file(self, filename): #processes the file
         try:
             parts = filename.lower().split('_')
@@ -109,27 +120,21 @@ class ReviewAnalyzer:
             with open(os.path.join(hotel_dir, input_file), 'r') as file_in:
                 with open(output_file, 'w', encoding='utf-8') as file_out:
                     writer = csv.writer(file_out)
-                    writer.writerow(["index", "categories", "overall_sentiment", "review", "sentiment_annotations"]) #lists the titles in csv
+                    writer.writerow(["index", "breakfast", "cleanliness", "price", "service", "location", "overall_sentiment", "review"]) #lists the titles in csv
                     
                     for line in file_in: #for each line, process and write in csv according to the titles above
                         processed_line = self.remove_stopwords_and_lemmatize(line) #not used in analysis since I want to test context and removing stopwords eliminates context
                         analysis = self.categorize_review(line)
-                        
-                        formatted_categories = []
-                        for category, values in analysis['categories'].items():
-                            star_count = sum(values)#combines all the 1's and -1's in the categorized_words list from categorize_review to sum up and find a number between 0-5, putting that amount of stars on the category
-                            if star_count > 5:
-                                star_count = 5
-                            elif star_count < 0:
-                                star_count = 0
-                            formatted_categories.append(f"{category}:{star_count}★")#flowering up 1 and -1 by converting them into stars, representing the star count for hotels
-                        
-                        review_text_no_commas = analysis['review_text'].replace(',', '') #strips commas from the final text to maintain csv integrity
+    
                         row = [
                             analysis['index'],
-                            ' '.join(formatted_categories), #since this is a csv file, don't join with commas(, )
+                            f"breakfast:{(analysis['categories']).get('breakfast', '')}★",#combines all the 1's and -1's in the categorized_words list from categorize_review to sum up and find a number between 0-5, putting that amount of stars on the category
+                            f"cleanliness:{(analysis['categories']).get('cleanliness', '')}★",#flowering up 1 and -1 by converting them into stars, representing the star count for hotels
+                            f"price:{(analysis['categories']).get('price', '')}★",
+                            f"service:{(analysis['categories']).get('service', '')}★",
+                            f"location:{(analysis['categories']).get('location', '')}★",
                             analysis['sentiment_paragraph'],
-                            review_text_no_commas,
+                            analysis['review_text'].replace(',', '')#strips commas from the final text to maintain csv integrity
                         ]
                         writer.writerow(row)
                         self.index += 1
@@ -191,24 +196,23 @@ class ReviewAnalyzer:
             processed_file_path = os.path.join("processed_data", city, f"{filename}_processed.csv") #construct full path for simplicity
 
             with open(processed_file_path, 'r', encoding='utf-8') as file_in: #finds the processed file in it's respective city folder (i.e. "processed_data\beijing\china_beijing_aloft_beijing_haidian_processed.csv")
-                df = pd.read_csv(file_in, usecols=['overall_sentiment'])#access 'sentiment' column from csv using pandas
+                df = pd.read_csv(file_in)#access columns from csv using pandas
                 if df.columns[0] == 'Unnamed: 0': #skip header
                     df = df.iloc[1:]
-                
+
+                total_reviews = df.shape[0]
                 total_positive = df[df['overall_sentiment'] >= 1].shape[0] #count positive and negative by counting how many is present in a column with that value
                 total_neutral = df[df['overall_sentiment'] == 0].shape[0]
                 total_negative = abs(df[df['overall_sentiment'] <= -1].shape[0])
-                total_reviews = df.shape[0]
+                
             
-            positive_ratio = total_positive / total_reviews#calculate overall sentiment
-            negative_ratio = total_negative / total_reviews
-            if positive_ratio > negative_ratio: #overall sentiment of the document ('positive', 'negative', or 'neutral').
+            if total_positive > total_negative: #overall sentiment of the document ('positive', 'negative', or 'neutral').
                 document_sentiment =  "positive"
-            elif negative_ratio > positive_ratio:
+            elif total_negative > total_positive:
                 document_sentiment =  "negative"
             else:
                 document_sentiment =  "neutral"
-            
+
             print(f"\nThe overall sentiment of the document is {document_sentiment}.")#print statement that contains all the information needed to display at the end
             print(f"Positive reviews: {total_positive}")
             print(f"Neutral reviews: {total_neutral}")
