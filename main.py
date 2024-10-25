@@ -7,11 +7,9 @@ from nltk.stem import WordNetLemmatizer
 
 from transformers import AutoTokenizer, AutoModelForSequenceClassification #transformers is used for ROBERTA
 from scipy.special import softmax
-import random
 
 import csv #for document analysis
 import pandas as pd
-
 import random #for picking random sentences to show off display 
 
 #nltk.download(['punkt','punkt_tab','averaged_perceptron_tagger','maxent_ne_chunker','words','stopwords','wordnet','vader_lexicon']) #required corpora found online
@@ -25,10 +23,6 @@ class ReviewAnalyzer:
         self.model_name = "cardiffnlp/twitter-roberta-base-sentiment" #uses pretrained ROBERTA model instead of VADER
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name)
-
-        self.total_positive = 0 #for document sentiment review
-        self.total_negative = 0
-        self.total_reviews = 0
 
     def remove_stopwords_and_lemmatize(self, input_text): #removes stop words and turns the individual words into a list with each words as its own string item
         tokens = word_tokenize(input_text.lower())
@@ -51,7 +45,7 @@ class ReviewAnalyzer:
         else:
             return '0'
 
-    def categorize_review(self, review):
+    def categorize_review(self, review): #gives scoring to set categories depending on sentiment and keywords
         categories = { #list of words that would be targettted to find the context around
             "breakfast": ["breakfast", "brunch", "lunch", "dining room"],
             "cleanliness": ["clean", "dirty", "filthy", "unclean", "spotless", "hygiene", "tidiness"],
@@ -148,7 +142,7 @@ class ReviewAnalyzer:
         except Exception as e: #error catching
             print(f"An error occurred: {str(e)}")
 
-    def search_processed_hotel(self, filename):
+    def search_processed_hotel(self, filename): #finds existing processed files
         try:
             parts = filename.lower().split('_')
             country = parts[0] #extract name information from the filename to find respective directory
@@ -186,6 +180,10 @@ class ReviewAnalyzer:
 
     def analyze_document_sentiment(self, filename): #takes in the csv file as input
         try:
+            total_positive = 0 #for document sentiment review
+            total_negative = 0
+            total_reviews = 0
+
             parts = filename.lower().split('_')
             country = parts[0] #extract name information from the filename to find respective directory
             city = parts[1].lower().replace(' ', '-')
@@ -204,20 +202,37 @@ class ReviewAnalyzer:
                 total_positive = df[df['overall_sentiment'] >= 1].shape[0] #count positive and negative by counting how many is present in a column with that value
                 total_neutral = df[df['overall_sentiment'] == 0].shape[0]
                 total_negative = abs(df[df['overall_sentiment'] <= -1].shape[0])
-                
             
-            if total_positive > total_negative: #overall sentiment of the document ('positive', 'negative', or 'neutral').
-                document_sentiment =  "positive"
-            elif total_negative > total_positive:
-                document_sentiment =  "negative"
-            else:
-                document_sentiment =  "neutral"
+                if total_positive > total_negative: #overall sentiment of the document ('positive', 'negative', or 'neutral').
+                    document_sentiment =  "positive"
+                elif total_negative > total_positive:
+                    document_sentiment =  "negative"
+                else:
+                    document_sentiment =  "neutral"
+
+                categories = ["breakfast", "cleanliness", "price", "service", "location"] #lists the categories for counting
+                average_ratings = {}
+
+                for category in categories: #counts for the total stars of every category and averages them for a document level analysis
+                    ratings = df[category].str.replace(f'{category}:', '') #remove string to just have number
+                    ratings = ratings.str.replace('★', '').astype(int)
+                    
+                    total_positive_star_ratings = ratings.sum()
+                    total_rating_amount = len(ratings)
+                    
+                    if total_rating_amount > 0:
+                        avg_rating = round(total_positive_star_ratings / total_rating_amount) #finds the average (rounded up) of all ratings per category
+                        average_ratings[category] = f"{avg_rating}★"
+                    else:
+                        average_ratings[category] = "0★"
+
 
             print(f"\nThe overall sentiment of the document is {document_sentiment}.")#print statement that contains all the information needed to display at the end
             print(f"Positive reviews: {total_positive}")
             print(f"Neutral reviews: {total_neutral}")
             print(f"Negative reviews: {total_negative}")
             print(f"Total reviews analyzed: {total_reviews}")
+            print(average_ratings)
 
         except Exception as e:
             print(f"An error occurred: {str(e)}")
