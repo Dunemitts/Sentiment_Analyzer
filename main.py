@@ -23,6 +23,7 @@ class ReviewAnalyzer:
         self.model_name = "cardiffnlp/twitter-roberta-base-sentiment" #uses pretrained ROBERTA model instead of VADER
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name)
+        self.file_processed = False #universal variable for gui processed file checking
 
     def remove_stopwords_and_lemmatize(self, input_text): #removes stop words and turns the individual words into a list with each words as its own string item
         tokens = word_tokenize(input_text.lower())
@@ -152,13 +153,17 @@ class ReviewAnalyzer:
                 city = parts[2].lower().replace(' ', '-')
 
             processed_file_path = os.path.join("processed_data", city, f"{filename}_processed.csv") #construct full path for simplicity
-            if os.path.exists(processed_file_path) == False: #check if exists, runs processing if it doesn't exist
-                    analyzer.process_file(filename) #processes and lists information in a csv file
-            else:
+            if os.path.exists(processed_file_path): #check if exists, runs processing if it doesn't exist
                 print(f'Processed file found in {processed_file_path}')
+                self.file_processed = True #sets this to true so gui can check for this
+            else:
+                print(f"No processed file found for {filename}. Processing...")
+                self.process_file(filename) #processes file if doesn't exist
+                self.file_processed = False #sets this to false so gui can check for this
 
         except Exception as e:
             print(f"An error occurred while searching for processed hotel: {str(e)}")
+            self.file_processed = False
 
     def display_stopwords_and_lemmatize(self, filename): #DEPRECATED: displays stopwords and lemmatization for assignment
         with open(filename, 'r') as file:
@@ -178,7 +183,7 @@ class ReviewAnalyzer:
         print("\nLemmatized Words:")
         print(" ".join(lemmatized_tokens))
 
-    def analyze_document_sentiment(self, filename): #takes in the csv file as input
+    def analyze_document_sentiment(analyzer, filename): #takes in the csv file as input
         try:
             total_positive = 0 #for document sentiment review
             total_negative = 0
@@ -218,10 +223,9 @@ class ReviewAnalyzer:
                     ratings = ratings.str.replace('★', '').astype(int)
                     
                     total_positive_star_ratings = ratings.sum()
-                    total_rating_amount = len(ratings)
                     
-                    if total_rating_amount > 0:
-                        avg_rating = round(total_positive_star_ratings / total_rating_amount) #finds the average (rounded up) of all ratings per category
+                    if total_reviews > 0:
+                        avg_rating = round(total_positive_star_ratings / total_reviews) #finds the average (rounded up) of all ratings per category
                         average_ratings[category] = f"{avg_rating}★"
                     else:
                         average_ratings[category] = "0★"
@@ -234,13 +238,23 @@ class ReviewAnalyzer:
             print(f"Total reviews analyzed: {total_reviews}")
             print(average_ratings)
 
+            return {
+                "positive_reviews": total_positive,
+                "negative_reviews": total_negative,
+                "total_reviews": total_reviews,
+                "average_ratings": average_ratings
+            }
+
         except Exception as e:
             print(f"An error occurred: {str(e)}")
+            return None
 
-if __name__ == "__main__":
+if __name__ == "__main__": #this is strictly backend stuff without gui
     analyzer = ReviewAnalyzer()
     hotel_name = input("Enter the hotel name (e.g., china_beijing_aloft_beijing_haidian): ") #take in input
-    analyzer.search_processed_hotel(hotel_name) #searches if file exists as processed data. if it does not, processes and lists information in a csv file
-    analyzer.analyze_document_sentiment(hotel_name) #prints document sentiment
+    #analyzer.search_processed_hotel(hotel_name) #searches if file exists as processed data. if it does not, processes and lists information in a csv file
+    #analyzer.analyze_document_sentiment(hotel_name) #prints document sentiment
     
     #DEPRECATED: analyzer.display_stopwords_and_lemmatize(os.path.join("data", hotel_name.lower().replace(' ', '_'), f"{hotel_name.lower().replace(' ', '_')}.txt")) #uses same logic as remove_stopwords_and_lemmatize to display results on small scale
+
+__all__ = ['ReviewAnalyzer']

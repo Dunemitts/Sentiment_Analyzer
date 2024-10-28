@@ -8,3 +8,7 @@ The main function to process the files is process_file(filename) while the other
 
 Pip Installs:
 pip install nltk transformers scipy pandas
+
+HOW TO USE:
+1. (In IDE Terminal) python gui.py
+2. Type in file name of hotel from data folder (i.e. usa_illinois_chicago_abbott_hotel)
