@@ -1,6 +1,22 @@
+CREATE TABLE hotel_reviews (
+    REP_NUM CHAR(2) PRIMARY KEY,
+    LAST_NAME CHAR(15),
+    FIRST_NAME CHAR(15),
+    STREET CHAR(15),
+    CITY CHAR(15),
+    STATE CHAR(2),
+    ZIP CHAR(5),
+    COMMISSION DECIMAL(7,2),
+    RATE DECIMAL(3,2) 
+);
+
+INSERT INTO hotel_reviews
+VALUES
+('20','Kaiser','Valerie','624 Randall','Grove','FL','33321',20542.50,0.05);
+
 -- Create the main table
 DROP TABLE hotel_reviews;
-CREATE TABLE IF NOT EXISTS hotel_reviews (
+CREATE TABLE hotel_reviews (
     "id" CHAR(3) PRIMARY KEY,
     "idHotel" CHAR(3),
     "idReview" CHAR(3),
@@ -8,6 +24,7 @@ CREATE TABLE IF NOT EXISTS hotel_reviews (
     "review" VARCHAR2(4000)
 );
 SELECT * FROM hotel_reviews;
+SELECT COUNT(*) FROM hotel_reviews;
 
 -- Procedure to execute SQL statement
 DROP PROCEDURE execute_sql;
