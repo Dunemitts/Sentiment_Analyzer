@@ -5,8 +5,41 @@ from contextlib import contextmanager #automatically close the connection when d
 
 import os #importing os module for environment variables
 from dotenv import load_dotenv, dotenv_values #importing necessary functions from dotenv library
+import pandas as pd #used to iterate through csv files and folders
+import csv
+
 load_dotenv() #loading variables from .env file
 
+def read_csv_file(file_path): #read csv
+    df = pd.read_csv(file_path)
+    return df
+
+def prepare_data_for_insertion(df, csv_file, city_folder_path, universal_id, hotel_id):
+    prepared_data = []
+
+    for _, row in df.iterrows():
+        review_text = row['review']
+        overall_sentiment = str(row['overall_sentiment']).zfill(4)
+        
+        id = str(universal_id).zfill(3) #always increments no matter what
+        idHotel = str(hotel_id).zfill(3) #only increments when a new file is being imported
+        idReview = str(row['index']).zfill(3) #takes on the 'index' column from the csv
+
+        print(f'id = {id}')
+        print(f'idHotel = {idHotel}')
+        print(f'idReview = {idReview}')
+        
+        prepared_data.append({
+            'id': id,
+            'idHotel': idHotel,
+            'idReview': idReview,
+            'overall_sentiment': overall_sentiment,
+            'review': review_text
+        })
+
+        universal_id += 1 #should always increment no matter what
+
+    return prepared_data
 
 @contextmanager
 def connect_to_db(username, password, ip, port, service_name):
@@ -31,74 +64,111 @@ def execute_query(conn, query, params=None):
         print(f"Error executing query: {e}")
         raise
 
-def main():
-    print(os.getenv("DATABASE_USER")) #accessing and printing value
+def create_table(conn, table_name): #checks for table, and creates one if not there. it returns the table NAME (JUST THE NAME)
+    table_name = table_name.upper()
+    check_table_query = f"""
+    SELECT COUNT(*) FROM user_tables WHERE table_name = '{table_name}'
+    """
+    result = execute_query(conn, check_table_query)
+    count = result.fetchone()[0] #gathers a count of other tables with the same name
+    
+    if count > 0: #checks if table already exists with the same name
+        print(f"Table {table_name} already exists.")
+    else:
+        print(f"Creating new table {table_name}...")
+        create_table_query = f"""
+        CREATE TABLE {table_name} (
+            id CHAR(3) PRIMARY KEY,
+            idHotel CHAR(3),
+            idReview CHAR(3),
+            overall_sentiment CHAR(4),
+            review VARCHAR2(4000)
+        )
+        """
+        execute_query(conn, create_table_query)
+        print(f"Table {table_name} created successfully.")
+    
+    return table_name
 
+def insert_query(conn, table_name, data): #inserts data into table
+    insert_query = f"""
+    INSERT INTO {table_name} (
+        id,
+        idHotel,
+        idReview,
+        overall_sentiment,
+        review
+    ) VALUES (
+        :id,
+        :idHotel,
+        :idReview,
+        :overall_sentiment,
+        :review
+    )
+    """
+    with conn.cursor() as cursor:
+        try:
+            cursor.executemany(insert_query, data)
+            conn.commit()
+            print(f"{len(data)} rows inserted successfully into {table_name}")
+        except cx_Oracle.Error as e:
+            print(f"Error inserting data: {e}")
+            conn.rollback()
+
+def select_query(conn, table_name): #counts rows and selects one random row from data (for demo)
+    select_query = f"SELECT * FROM {table_name}"
+    result = execute_query(conn, select_query)
+    row = result.fetchone()
+    if row:
+        print(f"Data inserted into {table_name} successfully:")
+        print(row)
+    else:
+        print(f"No rows returned in {table_name} after insertion")
+
+    count_query = f"SELECT COUNT(*) FROM {table_name}"
+    result = execute_query(conn, count_query)
+    count = result.fetchone()[0]
+    print(f"Number of rows in {table_name} table: {count}")
+
+def main():
     username = os.getenv("DATABASE_USER")
     password = os.getenv("DATABASE_PASSWORD")
     ip = "localhost"
-    port = 1521  # Default Oracle port
+    port = 1521  #default Oracle port
     service_name = "orcl"
-    
+
+    universal_id = 1 #is a global variable because it's an index tracker
+    hotel_id = 1 #also a global variable but increases every file change
+
+    processed_data_folder = r"processed_data" #example path: processed_data\beijing\china_beijing_aloft_beijing_haidian_processed.csv
+    city_folders = ["beijing", "chicago", "las-vegas", "london", "montreal", "new-delhi", "new-york-city", "san-francisco", "shanghai"]
+
     with connect_to_db(username, password, ip, port, service_name) as conn:
-        check_table_query = """
-        SELECT COUNT(*) FROM user_tables WHERE table_name = 'HOTEL_REVIEWS'
-        """
-        result = execute_query(conn, check_table_query)
-        count = result.fetchone()[0]
+        hotel_table = create_table(conn, "hotel_reviews") #takes table name as a second argument (can be an input)
         
-        if count > 0:
-            print("Table hotel_reviews already exists.")
-        else:
-            print("Creating new table hotel_reviews...")
-            create_table_query = """
-            CREATE TABLE hotel_reviews (
-                id CHAR(3) PRIMARY KEY,
-                idHotel CHAR(3),
-                idReview CHAR(3),
-                overall_sentiment CHAR(4),
-                review VARCHAR2(4000)
-            )
-            """
-            execute_query(conn, create_table_query)
-            print("Table created successfully.")
+        for city in city_folders:
+            city_folder_path = os.path.join(processed_data_folder, city)
 
-        # Example query
-        insert_query = """
-        INSERT INTO hotel_reviews (
-            id,
-            idHotel,
-            idReview,
-            overall_sentiment,
-            review
-        ) VALUES (
-            '1',
-            '1',
-            '1',
-            '64',
-            :reviewText
-        )
-        """
+            csv_files = [os.path.join(city_folder_path, file)
+                         for file in os.listdir(city_folder_path)
+                         if file.endswith('.csv') and 'processed' in file.lower()]
 
-        # Prepare the review text
-        review_text = """'Oct 12 2009 	Nice trendy hotel location not too bad.	I stayed in this hotel for one night. As this is a fairly new place some of the taxi drivers did not know where it was and/or did not want to drive there. Once I have eventually arrived at the hotel I was very pleasantly surprised with the decor of the lobby/ground floor area. It was very stylish and modern. I found the reception's staff geeting me with 'Aloha' a bit out of place but I guess they are briefed to say that to keep up the coroporate image.As I have a Starwood Preferred Guest member I was given a small gift upon-check in. It was only a couple of fridge magnets in a gift box but nevertheless a nice gesture.My room was nice and roomy there are tea and coffee facilities in each room and you get two complimentary bottles of water plus some toiletries by 'bliss'.The location is not great. It is at the last metro stop and you then need to take a taxi but if you are not planning on going to see the historic sites in Beijing then you will be ok.I chose to have some breakfast in the hotel which was really tasty and there was a good selection of dishes. There are a couple of computers to use in the communal area as well as a pool table. There is also a small swimming pool and a gym area.I would definitely stay in this hotel again but only if I did not plan to travel to central Beijing as it can take a long time. The location is ok if you plan to do a lot of shopping as there is a big shopping centre just few minutes away from the hotel and there are plenty of eating options around including restaurants that serve dog meat!'"""
+            if csv_files:
+                print(f"Processing {city} files...")
 
-        # Execute the query with parameterized values
-        execute_query(conn, insert_query, {'reviewText': review_text})
+                for csv_file in csv_files:
+                    df = read_csv_file(csv_file)
+                    prepared_data = prepare_data_for_insertion(df, csv_file, city_folder_path, universal_id, hotel_id)
 
-        select_query = "SELECT * FROM hotel_reviews"
-        result = execute_query(conn, select_query)
-        row = result.fetchone()
-        if row:
-            print("Data inserted successfully:")
-            print(row)
-        else:
-            print("No rows returned after insertion")
+                    insert_query(conn, hotel_table, prepared_data)
+                    print(f"Inserted {len(prepared_data)} rows from {csv_file}")
+                    hotel_id += 1 #increments every file change
+                    universal_id += len(df)  # Increment universal_id by the number of rows in the current file
+                print(f"Finished processing {city} files.\n")
+            else:
+                print(f"No processed csv files found in {city} folder.\n")
 
-        count_query = "SELECT COUNT(*) FROM hotel_reviews"
-        result = execute_query(conn, count_query)
-        count = result.fetchone()[0]
-        print(f"Number of rows in hotel_reviews table: {count}")
+        #select_query(conn, hotel_table) #double checking data insertion
 
         
 if __name__ == "__main__":
