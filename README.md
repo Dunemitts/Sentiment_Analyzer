@@ -12,7 +12,7 @@ Pip Installs:
 pip install nltk transformers scipy pandas cx_oracle
 
 HOW TO USE:
-1. (In IDE Terminal) python database_connection.py to connect to the database
+1. (In IDE Terminal) python database_connection.py to connect to the database (Whenever a new csv file is created via gui.py, this must be run in order to insert into the database)
 2. (In IDE Terminal) python gui.py
 3. Type in file name of hotel from data folder (i.e. usa_illinois_chicago_abbott_hotel)
 
