@@ -6,9 +6,15 @@ The main function to process the files is process_file(filename) while the other
 
 (OUTDATED) There is already a processed file in the repository called hotel_processed.csv (which can be overwritten) that displays an end product of processing hotel_texting.txt
 
+Since the database is on an Oracle Environment, the sql file is best opened in a program like Oracle SQL Developer, creating a new database in there and setting the environment variables in a .env file to your user and password.
+
 Pip Installs:
-pip install nltk transformers scipy pandas
+pip install nltk transformers scipy pandas cx_oracle
 
 HOW TO USE:
-1. (In IDE Terminal) python gui.py
-2. Type in file name of hotel from data folder (i.e. usa_illinois_chicago_abbott_hotel)
+1. (In IDE Terminal) python database_connection.py to connect to the database
+2. (In IDE Terminal) python gui.py
+3. Type in file name of hotel from data folder (i.e. usa_illinois_chicago_abbott_hotel)
+
+import cx_Oracle requires the oracle instant client (light) to function https://www.oracle.com/database/technologies/instant-client/downloads.html
+- MAKE SURE TO INCLUE THE PATH OF DOWNLOAD TO THE ENVIRONMENT VARIABLES ON PC (System Properties > Advanced > Environment Variables)

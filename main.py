@@ -142,6 +142,7 @@ class ReviewAnalyzer:
             print(f"Processing completed successfully for {hotel_name}")
         except Exception as e: #error catching
             print(f"An error occurred: {str(e)}")
+        self.index = 1
 
     def search_processed_hotel(self, filename): #finds existing processed files
         try:

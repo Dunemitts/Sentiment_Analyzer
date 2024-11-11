@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from main import ReviewAnalyzer
+from main import ReviewAnalyzer #import function from main.py
 
 class HotelGUI:
     def __init__(self, master):
