@@ -11,6 +11,9 @@ Since the database is on an Oracle Environment, the sql file is best opened in a
 Pip Installs:
 pip install nltk transformers scipy pandas cx_oracle
 
+FOR CX_ORACLE:
+https://www.youtube.com/watch?v=C9op6I-4WM0
+
 HOW TO USE:
 1. (In IDE Terminal) python database_connection.py to connect to the database
 2. (In IDE Terminal) python gui.py

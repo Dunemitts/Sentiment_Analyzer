@@ -98,7 +98,8 @@ class ReviewAnalyzer:
             hotel_name = parts[2].lower().replace(' ', '-')
             
             if country in ["usa", "uk"]: #check for countries with states so they can skip over states and only grab city
-                city = parts[2].lower().replace(' ', '-')
+                if city not in ["new-york-city", "san-francisco"]:
+                    city = parts[2].lower().replace(' ', '-') 
             
             hotel_dir = os.path.join("data", city) #find the directory with the hotel files
             if not os.path.exists(hotel_dir): #check if directory exists
@@ -151,7 +152,8 @@ class ReviewAnalyzer:
             city = parts[1].lower().replace(' ', '-')
             
             if country in ["usa", "uk"]: #check for countries with states so they can skip over states and only grab city
-                city = parts[2].lower().replace(' ', '-')
+                if city not in ["new-york-city", "san-francisco"]:
+                    city = parts[2].lower().replace(' ', '-') #check for countries with states so they can skip over states and only grab city
 
             processed_file_path = os.path.join("processed_data", city, f"{filename}_processed.csv") #construct full path for simplicity
             if os.path.exists(processed_file_path): #check if exists, runs processing if it doesn't exist
@@ -195,7 +197,8 @@ class ReviewAnalyzer:
             city = parts[1].lower().replace(' ', '-')
             
             if country in ["usa", "uk"]: #check for countries with states so they can skip over states and only grab city
-                city = parts[2].lower().replace(' ', '-')
+                if city not in ["new-york-city", "san-francisco"]:
+                    city = parts[2].lower().replace(' ', '-') #check for countries with states so they can skip over states and only grab city
 
             processed_file_path = os.path.join("processed_data", city, f"{filename}_processed.csv") #construct full path for simplicity
 

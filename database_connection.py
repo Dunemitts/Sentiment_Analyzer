@@ -1,5 +1,4 @@
 import cx_Oracle #requires the oracle instant client (light) to function https://www.oracle.com/database/technologies/instant-client/downloads.html
-cx_Oracle.init_oracle_client(lib_dir=r"C:\Users\13178\Documents\GitHub\Sentiment_Analyzer\instantclient-basiclite-windows.x64-23.5.0.24.07\instantclient_23_5") #path of instantclient
 
 from contextlib import contextmanager #automatically close the connection when done
 
@@ -9,12 +8,13 @@ import pandas as pd #used to iterate through csv files and folders
 import csv
 
 load_dotenv() #loading variables from .env file
+cx_Oracle.init_oracle_client(lib_dir=os.getenv("CX_ORACLE_LOCATION")) #path of instantclient should look something like "C:\Users\Lance\Documents\SchoolVSCode\cit44400\instantclient_23_6"
 
 def read_csv_file(file_path): #read csv
     df = pd.read_csv(file_path)
     return df
 
-def prepare_data_for_insertion(df, csv_file, city_folder_path, universal_id, hotel_id):
+def prepare_data_for_insertion(df, universal_id, hotel_id):
     prepared_data = []
 
     for _, row in df.iterrows():
@@ -74,6 +74,11 @@ def create_table(conn, table_name): #checks for table, and creates one if not th
     
     if count > 0: #checks if table already exists with the same name
         print(f"Table {table_name} already exists.")
+        clear_table = f"""
+        TRUNCATE TABLE {table_name}
+        """
+        execute_query(conn, clear_table)
+        print(f"Table {table_name} cleared.")
     else:
         print(f"Creating new table {table_name}...")
         create_table_query = f"""
@@ -135,7 +140,7 @@ def main():
     password = os.getenv("DATABASE_PASSWORD")
     ip = "localhost"
     port = 1521  #default Oracle port
-    service_name = "orcl"
+    service_name = os.getenv("SERVICE_NAME")
 
     universal_id = 1 #is a global variable because it's an index tracker
     hotel_id = 1 #also a global variable but increases every file change
@@ -158,7 +163,7 @@ def main():
 
                 for csv_file in csv_files:
                     df = read_csv_file(csv_file)
-                    prepared_data = prepare_data_for_insertion(df, csv_file, city_folder_path, universal_id, hotel_id)
+                    prepared_data = prepare_data_for_insertion(df, universal_id, hotel_id)
 
                     insert_query(conn, hotel_table, prepared_data)
                     print(f"Inserted {len(prepared_data)} rows from {csv_file}")
