@@ -8,6 +8,12 @@ The main function to process the files is process_file(filename) while the other
 
 Since the database is on an Oracle Environment, the sql file is best opened in a program like Oracle SQL Developer, creating a new database in there and setting the environment variables in a .env file to your user and password.
 
+.ENV Variables Needed:
+DATABASE_USER = username
+DATABASE_PASSWORD = password
+SERVICE_NAME = service name
+CX_ORACLE_LOCATION = cx_Oracle client location
+
 Pip Installs:
 pip install nltk transformers scipy pandas cx_oracle
 

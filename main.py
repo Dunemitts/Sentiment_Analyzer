@@ -47,14 +47,14 @@ class ReviewAnalyzer:
             return '0'
 
     def categorize_review(self, review): #gives scoring to set categories depending on sentiment and keywords
-        categories = { #list of words that would be targettted to find the context around
-            "breakfast": ["breakfast", "brunch", "lunch", "dining room"],
-            "cleanliness": ["clean", "dirty", "filthy", "unclean", "spotless", "hygiene", "tidiness"],
-            "price": ["cheap", "expensive", "affordable", "overpriced", "value", "cost", "bill"],
-            "service": ["staff", "helpful", "rude", "friendly", "unfriendly", "attentive", "inattentive"],
-            "location": ["near", "far", "central", "remote", "proximity"]
+        categories = {#list of words that would be targettted to find the context around
+            "breakfast": ["breakfast", "brunch", "lunch", "dining room", "morning meal", "continental breakfast", "full English breakfast", "cereal", "eggs", "pancakes", "waffles", "oatmeal", "toast", "baked goods", "fruit", "juice", "coffee", "tea", "breakie", "brekkie"],
+            "cleanliness": ["clean", "dirty", "filthy", "unclean", "spotless", "hygiene", "tidiness", "neatness", "orderly", "organized", "spotless", "sterile", "sanitary", "hygienic", "dust-free", "clutter-free", "messy", "disheveled", "untidy", "chaotic"],
+            "price": ["cheap", "expensive", "affordable", "overpriced", "value", "cost", "bill", "rate", "fee", "charge", "tariff", "expense", "budget-friendly", "steep", "reasonable", "worthwhile", "rip-off", "outrageous", "exorbitant", "astronomical", "sky-high", "eye-watering", "wallet-busting"],
+            "service": ["staff", "helpful", "rude", "friendly", "unfriendly", "attentive", "inattentive", "efficient", "inefficient", "courteous", "impolite", "professional", "unprofessional", "welcoming", "aloof", "accommodating", "unaccommodating", "responsive", "irresponsive", "supportive", "unsupportive", "assisting", "neglecting"],
+            "location": ["near", "far", "central", "remote", "proximity", "accessibility", "convenience", "location", "situation", "position", "placement", "setting", "ambience", "atmosphere", "environment", "surroundings", "vicinity", "locale", "spot", "place", "site"]
         }
-        
+
         words = review.split()
         categorized_words = {}
         roberta_sentiments = []
@@ -147,6 +147,9 @@ class ReviewAnalyzer:
 
     def search_processed_hotel(self, filename): #finds existing processed files
         try:
+            if filename.endswith('_processed.csv'): #targetting something like this: _processed.csv
+                filename = filename.replace("_processed.csv", "")
+
             parts = filename.lower().split('_')
             country = parts[0] #extract name information from the filename to find respective directory
             city = parts[1].lower().replace(' ', '-')
@@ -192,6 +195,9 @@ class ReviewAnalyzer:
             total_negative = 0
             total_reviews = 0
 
+            if filename.endswith('_processed.csv'): #targetting something like this: _processed.csv
+                filename = filename.replace("_processed.csv", "")
+
             parts = filename.lower().split('_')
             country = parts[0] #extract name information from the filename to find respective directory
             city = parts[1].lower().replace(' ', '-')
@@ -201,6 +207,13 @@ class ReviewAnalyzer:
                     city = parts[2].lower().replace(' ', '-') #check for countries with states so they can skip over states and only grab city
 
             processed_file_path = os.path.join("processed_data", city, f"{filename}_processed.csv") #construct full path for simplicity
+            if os.path.exists(processed_file_path):  #check if exists, runs processing if it doesn't exist
+                print(f'Processed file found in {processed_file_path}')
+                analyzer.file_processed = True #sets this to true so gui can check for this
+            else:
+                print(f"No processed file found for {filename}. Processing...")
+                analyzer.process_file(filename) #processes file if doesn't exist
+                analyzer.file_processed = False #sets this to false so gui can check for this
 
             with open(processed_file_path, 'r', encoding='utf-8') as file_in: #finds the processed file in it's respective city folder (i.e. "processed_data\beijing\china_beijing_aloft_beijing_haidian_processed.csv")
                 df = pd.read_csv(file_in)#access columns from csv using pandas
@@ -251,6 +264,7 @@ class ReviewAnalyzer:
 
         except Exception as e:
             print(f"An error occurred: {str(e)}")
+            analyzer.file_processed = False
             return None
 
 if __name__ == "__main__": #this is strictly backend stuff without gui
