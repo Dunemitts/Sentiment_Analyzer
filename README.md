@@ -21,6 +21,7 @@ FOR CX_ORACLE:
 https://www.youtube.com/watch?v=C9op6I-4WM0
 
 HOW TO USE:
+1. (In Oracle SQL Developer) create a connection and input connection information into .ENV
 1. (In IDE Terminal) python database_connection.py to connect to the database
 2. (In IDE Terminal) python gui.py
 3. Type in file name of hotel from data folder (i.e. usa_illinois_chicago_abbott_hotel)

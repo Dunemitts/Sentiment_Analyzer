@@ -189,7 +189,7 @@ class ReviewAnalyzer:
         print("\nLemmatized Words:")
         print(" ".join(lemmatized_tokens))
 
-    def analyze_document_sentiment(analyzer, filename): #takes in the csv file as input
+    def analyze_document_sentiment(analyzer, filename): #finds the total amount of reviews and average ratings for each hotel and displays them as an overall sentiment per hotel
         try:
             total_positive = 0 #for document sentiment review
             total_negative = 0
@@ -275,4 +275,4 @@ if __name__ == "__main__": #this is strictly backend stuff without gui
     
     #DEPRECATED: analyzer.display_stopwords_and_lemmatize(os.path.join("data", hotel_name.lower().replace(' ', '_'), f"{hotel_name.lower().replace(' ', '_')}.txt")) #uses same logic as remove_stopwords_and_lemmatize to display results on small scale
 
-__all__ = ['ReviewAnalyzer']
+__all__ = ['ReviewAnalyzer'] #uncomment this line to turn main.py into a module
