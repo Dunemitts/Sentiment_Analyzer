@@ -37,36 +37,6 @@ def execute_query(conn, query, params=None): #used to execute sql queries
         print(f"Error executing query: {e}")
         raise
 
-def create_table(conn, table_name): #checks for table, and creates one if not there. it returns the table NAME (JUST THE NAME)
-    table_name = table_name.upper()
-    check_table_query = f"""
-    SELECT COUNT(*) FROM user_tables WHERE table_name = '{table_name}'
-    """
-    result = execute_query(conn, check_table_query)
-    count = result.fetchone()[0] #gathers a count of other tables with the same name
-    
-    if count > 0: #checks if table already exists with the same name
-        print(f"Table {table_name} already exists.")
-        clear_table = f"""
-        TRUNCATE TABLE {table_name}
-        """
-        execute_query(conn, clear_table)
-        print(f"Table {table_name} cleared.")
-    else:
-        print(f"Creating new table {table_name}...")
-        create_table_query = f"""
-        CREATE TABLE {table_name} (
-            HOTELID NUMBER(38, 0) PRIMARY KEY,
-            NAME VARCHAR2(100) NOT NULL,
-            CITY VARCHAR2(100),
-            COUNTRY VARCHAR2(100)
-        )
-        """
-        execute_query(conn, create_table_query)
-        print(f"Table {table_name} created successfully.")
-    
-    return table_name
-
 def prepare_data_for_insertion(df): #returns a list 
     prepared_data = []
 
@@ -131,41 +101,6 @@ def select_query(conn, table_name): #counts rows and selects one random row from
     result = execute_query(conn, count_query)
     count = result.fetchone()[0]
     print(f"Number of rows in {table_name} table: {count}")
-
-
-def create_rated_table(conn, table_name, table_name_foreign): #takes in 2 table names and uses the second as a foreign key, returns both names
-    table_name = table_name.upper()
-    check_table_query = f"""
-    SELECT COUNT(*) FROM user_tables WHERE table_name = '{table_name}'
-    """
-    result = execute_query(conn, check_table_query)
-    count = result.fetchone()[0] #gathers a count of other tables with the same name
-    
-    if count > 0: #checks if table already exists with the same name
-        print(f"Table {table_name} already exists.")
-        clear_table = f"""
-        TRUNCATE TABLE {table_name}
-        """
-        execute_query(conn, clear_table)
-        print(f"Table {table_name} cleared.")
-    else:
-        print(f"Creating new table {table_name}...")
-        create_table_query = f"""
-        CREATE TABLE {table_name} (
-            RATINGID INT PRIMARY KEY,
-            HOTELID INT,
-            BREAKFASTSCORE INT,
-            CLEANSCORE INT,
-            PRICESCORE INT,
-            SERVICESCORE INT,
-            LOCALSCORE INT,
-            FOREIGN KEY (HOTELID) REFERENCES {table_name_foreign}(HOTELID)
-        )
-        """
-        execute_query(conn, create_table_query)
-        print(f"Table {table_name} created successfully.")
-    
-    return table_name, table_name_foreign
 
 def insert_average_ratings(conn, table_name, table_name_foreign, data_dir): #inserts average hotel ratings into database
     hotel_directories = []
@@ -261,7 +196,7 @@ def main(conn): #currently used for inserting Hotel.csv rows to hotels table
     processed_data_folder = r"C:\Users\13178\Documents\GitHub\Sentiment_Analyzer"
     hotel_file = os.path.join(processed_data_folder, 'Hotels.csv')
 
-    hotels_table = create_table(conn, "hotels")
+    hotels_table = "hotels"
     
     df = read_csv_file(hotel_file)
     prepared_data = prepare_data_for_insertion(df)
@@ -288,5 +223,4 @@ if __name__ == "__main__":
     service_name = os.getenv("SERVICE_NAME")
     with connect_to_db(username, password, ip, port, service_name) as conn:
         #main(conn)
-        ratings, hotels = create_rated_table(conn, "ratings", "hotels")
-        insert_average_ratings(conn, ratings, hotels, r"processed_data") #input parent directory to search from
+        insert_average_ratings(conn, "ratings", "hotels", r"processed_data") #input parent directory to search from
