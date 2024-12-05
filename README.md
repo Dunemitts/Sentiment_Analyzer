@@ -86,6 +86,7 @@ This script implements a ReviewAnalyzer class that performs sentiment analysis a
 - Data Visualization: Displays results including positive/negative reviews count and average ratings
 - Hotel Filtering: Allows users to filter hotels based on specific criteria
 
+
 #### Usage
 1. User inputs a hotel name
 2. Script searches for existing processed data or processes new data if needed
@@ -175,3 +176,4 @@ This script, database_connection.py, establishes a connection to an Oracle datab
 #### Usage:
 The script can be run as part of a larger application. It sets up the database connection and provides functions for various database operations.
 1. python database_connection.py
+
