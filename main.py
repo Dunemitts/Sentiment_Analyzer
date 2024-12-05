@@ -150,26 +150,67 @@ class ReviewAnalyzer:
             if filename.endswith('_processed.csv'): #targetting something like this: _processed.csv
                 filename = filename.replace("_processed.csv", "")
 
+            print(f"filename: {filename}")
+
             parts = filename.lower().split('_')
+            print(f"parts: {parts}")
             country = parts[0] #extract name information from the filename to find respective directory
-            city = parts[1].lower().replace(' ', '-')
+            city = parts[1].lower() #join remaining parts into a string
+            print(f"city: {city}")
             
             if country in ["usa", "uk"]: #check for countries with states so they can skip over states and only grab city
                 if city not in ["new-york-city", "san-francisco"]:
                     city = parts[2].lower().replace(' ', '-') #check for countries with states so they can skip over states and only grab city
 
-            processed_file_path = os.path.join("processed_data", city, f"{filename}_processed.csv") #construct full path for simplicity
+            processed_file_path = os.path.join("processed_data", city, f"{filename}") #construct full path for simplicity
             if os.path.exists(processed_file_path): #check if exists, runs processing if it doesn't exist
-                print(f'Processed file found in {processed_file_path}')
+                print(f'Processed file found for {filename} in {processed_file_path}')
                 self.file_processed = True #sets this to true so gui can check for this
             else:
-                print(f"No processed file found for {filename}. Processing...")
-                self.process_file(filename) #processes file if doesn't exist
-                self.file_processed = False #sets this to false so gui can check for this
+                print(f"No processed file found for {filename} in {processed_file_path}.")
 
         except Exception as e:
             print(f"An error occurred while searching for processed hotel: {str(e)}")
             self.file_processed = False
+
+    def filter_hotels(self, city, filters):
+        processed_data_path = os.path.join("processed_data")
+        print(f"processed_data_path: {processed_data_path}")
+        matching_hotels = []
+
+        city_path = os.path.join(processed_data_path, city)
+        print(f"city_path: {city_path}")
+        for file in os.listdir(city_path):
+            if file.endswith("_processed.csv"):
+                print(f"file: {file}")
+                hotel_name = file[:-14]  # Remove "_processed.csv"
+                print(f"hotel_name: {hotel_name}")
+                sentiment_analysis = self.analyze_document_sentiment(hotel_name)
+                print(f"sentiment_analysis: {sentiment_analysis}")
+                ratings = sentiment_analysis["average_ratings"]
+                print(f"ratings: {ratings}")
+
+                default_categories = ['breakfast', 'cleanliness', 'price', 'service', 'location']
+                for category in default_categories:
+                    if category not in ratings:
+                        ratings[category] = 0
+                    else:
+                        ratings[category] = int(ratings[category].replace('★', ''))
+                
+                print(f"ratings: {ratings}")
+                
+                match = True
+                print(f"filters.items(): {filters.items()}")
+                print(f"filters[breakfast]: {filters["breakfast"]}")
+                for category, rating in filters.items():
+                    if rating is not None and ratings.get(category, 0) < rating:
+                        match = False
+                        break
+                
+                if match:
+                    matching_hotels.append(f"{hotel_name.replace("_", " ")}")
+                        
+        return matching_hotels
 
     def display_stopwords_and_lemmatize(self, filename): #DEPRECATED: displays stopwords and lemmatization for assignment
         with open(filename, 'r') as file:
@@ -195,8 +236,10 @@ class ReviewAnalyzer:
             total_negative = 0
             total_reviews = 0
 
-            if filename.endswith('_processed.csv'): #targetting something like this: _processed.csv
-                filename = filename.replace("_processed.csv", "")
+            if filename.endswith('_processed.csv'):
+                filename = filename
+            else:
+                filename = f"{filename}_processed.csv"
 
             parts = filename.lower().split('_')
             country = parts[0] #extract name information from the filename to find respective directory
@@ -206,14 +249,13 @@ class ReviewAnalyzer:
                 if city not in ["new-york-city", "san-francisco"]:
                     city = parts[2].lower().replace(' ', '-') #check for countries with states so they can skip over states and only grab city
 
-            processed_file_path = os.path.join("processed_data", city, f"{filename}_processed.csv") #construct full path for simplicity
+            processed_file_path = os.path.join("processed_data", city, f"{filename}") #construct full path for simplicity
+            
             if os.path.exists(processed_file_path):  #check if exists, runs processing if it doesn't exist
                 print(f'Processed file found in {processed_file_path}')
                 analyzer.file_processed = True #sets this to true so gui can check for this
             else:
-                print(f"No processed file found for {filename}. Processing...")
-                analyzer.process_file(filename) #processes file if doesn't exist
-                analyzer.file_processed = False #sets this to false so gui can check for this
+                print(f"No processed file found for {filename}")
 
             with open(processed_file_path, 'r', encoding='utf-8') as file_in: #finds the processed file in it's respective city folder (i.e. "processed_data\beijing\china_beijing_aloft_beijing_haidian_processed.csv")
                 df = pd.read_csv(file_in)#access columns from csv using pandas
@@ -265,14 +307,15 @@ class ReviewAnalyzer:
         except Exception as e:
             print(f"An error occurred: {str(e)}")
             analyzer.file_processed = False
-            return None
+            return {}
+
 
 if __name__ == "__main__": #this is strictly backend stuff without gui
     analyzer = ReviewAnalyzer()
-    hotel_name = input("Enter the hotel name (e.g., china_beijing_aloft_beijing_haidian): ") #take in input
+    #hotel_name = input("Enter the hotel name (e.g., china_beijing_aloft_beijing_haidian): ") #take in input
     #analyzer.search_processed_hotel(hotel_name) #searches if file exists as processed data. if it does not, processes and lists information in a csv file
-    #analyzer.analyze_document_sentiment(hotel_name) #prints document sentiment
+    analyzer.analyze_document_sentiment("china_beijing_aloft_beijing_haidian") #prints document sentiment
     
     #DEPRECATED: analyzer.display_stopwords_and_lemmatize(os.path.join("data", hotel_name.lower().replace(' ', '_'), f"{hotel_name.lower().replace(' ', '_')}.txt")) #uses same logic as remove_stopwords_and_lemmatize to display results on small scale
 
-__all__ = ['ReviewAnalyzer'] #uncomment this line to turn main.py into a module
+#__all__ = ['ReviewAnalyzer'] #uncomment this line to turn main.py into a module
