@@ -30,6 +30,7 @@ pip install nltk transformers scipy pandas cx_oracle
 - MAKE SURE TO INCLUE THE PATH OF DOWNLOAD TO THE ENVIRONMENT VARIABLES ON PC (System Properties > Advanced > Environment Variables)
 
 ## Usage
+
 0.1. (In IDE Terminal) python process_all_files.py to process every data txt file from the data folder to the processed_data folder
 1. (In Oracle SQL Developer) create a connection and input connection information into .ENV
 2. (In IDE Terminal) python database_connection.py to connect to the database
