@@ -26,9 +26,11 @@ pip install nltk transformers scipy pandas cx_oracle
 - DATABASE_PASSWORD = password 
 - SERVICE_NAME = service name 
 - CX_ORACLE_LOCATION = cx_Oracle client location
+- ANALYZER_LOCATION = Sentiment_Analyzer location
 - MAKE SURE TO INCLUE THE PATH OF DOWNLOAD TO THE ENVIRONMENT VARIABLES ON PC (System Properties > Advanced > Environment Variables)
 
 ## Usage
+0.1. (In IDE Terminal) python process_all_files.py to process every data txt file from the data folder to the processed_data folder
 1. (In Oracle SQL Developer) create a connection and input connection information into .ENV
 2. (In IDE Terminal) python database_connection.py to connect to the database
 3. (In IDE Terminal) python gui.py
@@ -70,7 +72,7 @@ This script implements a ReviewAnalyzer class that performs sentiment analysis a
     - Categorizing reviews based on predefined keywords
     - Processing hotel review files
     - Searching for processed hotel files
-    - Displaying stopwords and lemmatization (deprecated)
+    - Filtering hotels based on user-specified criteria
     - Analyzing document-level sentiment and average ratings
 - Main Function:
   - Prompts user input for hotel name
@@ -82,12 +84,15 @@ This script implements a ReviewAnalyzer class that performs sentiment analysis a
 - Document-Level Analysis: Calculates overall sentiment and average ratings per category
 - File Processing: Processes raw hotel review files and saves processed data
 - Data Visualization: Displays results including positive/negative reviews count and average ratings
+- Hotel Filtering: Allows users to filter hotels based on specific criteria
+
 
 #### Usage
 1. User inputs a hotel name
 2. Script searches for existing processed data or processes new data if needed
 3. Analyzes sentiment and categorizes reviews
-4. Displays document-level sentiment analysis and average ratings
+4. Filters hotels based on user-specified criteria
+5. Displays document-level sentiment analysis and average ratings
 
 ### Process_All_Files.py
 
@@ -126,8 +131,8 @@ This script, gui.py, creates a graphical user interface (GUI) for the Hotel Revi
 
 #### Key Features
 - User Interface:
-  - Entry field for hotel name
   - Dropdown menu for selecting cities
+  - Advanced filtering functionality
   - Listbox for displaying available hotels
   - Buttons for searching and selecting hotels
   - Result display area showing sentiment analysis and ratings
@@ -138,8 +143,8 @@ This script, gui.py, creates a graphical user interface (GUI) for the Hotel Revi
   - Displays results including positive/negative reviews and average ratings
 #### Usage:
 The GUI allows users to interact with the Hotel Review Analyzer in the following ways:
-- Enter a hotel name manually
 - Select a city from the dropdown menu
+- Filter desirable attributes for hotels
 - View a list of available hotels for the selected city
 - Select a hotel from the list to view its analysis
 
@@ -171,3 +176,4 @@ This script, database_connection.py, establishes a connection to an Oracle datab
 #### Usage:
 The script can be run as part of a larger application. It sets up the database connection and provides functions for various database operations.
 1. python database_connection.py
+
